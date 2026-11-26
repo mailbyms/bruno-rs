@@ -1,0 +1,3 @@
+import { OpenCollection } from "./types";
+export declare const brunoToOpenCollection: (collection: BrunoCollection) => OpenCollection;
+//# sourceMappingURL=bruno-to-opencollection.d.ts.map

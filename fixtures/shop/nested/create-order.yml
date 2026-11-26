@@ -1,0 +1,19 @@
+info:
+  name: Create Order
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://127.0.0.1:18081/orders
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |
+      { "item": "coffee", "qty": 2 }
+
+settings:
+  encodeUrl: true
+  timeout: 0

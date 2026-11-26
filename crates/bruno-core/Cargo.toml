@@ -1,0 +1,45 @@
+[package]
+name = "bruno-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yml.workspace = true
+uuid.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+base64.workspace = true
+url.workspace = true
+anyhow = "1"
+rquickjs = "0.11.0"
+md-5 = "0.11.0"
+sha2 = "0.11.0"
+hmac = "0.13.0"
+hex = "0.4.3"
+rand = "0.10.4"
+percent-encoding = "2.3.2"
+sha1 = "0.11.0"
+zip = "2"
+cookie = "0.18"
+
+# WebSocket（gRPC 与 WS 两个长尾子系统）
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+http = "1"
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+# gRPC 动态调用：protox 纯 Rust 编译 .proto（不需要 protoc 二进制），
+# prost-reflect 提供 DescriptorPool / DynamicMessage，tonic 负责 HTTP/2 传输
+prost = "0.14"
+prost-types = "0.14"
+prost-reflect = { version = "0.16", features = ["serde"] }
+protox = "0.10"
+tonic = { version = "0.14", default-features = false, features = ["channel", "codegen", "transport", "tls-ring", "tls-webpki-roots"] }
+
+[dev-dependencies]
+# WS 端到端测试要用真实监听端口
+tokio = { workspace = true, features = ["net"] }

@@ -1,0 +1,17 @@
+{
+  "name": "bruno-rs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "npm --prefix web run dev",
+    "build:web": "npm --prefix web run build",
+    "dev:app": "tauri dev",
+    "build:app": "tauri build --no-bundle",
+    "build:installer": "tauri build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4"
+  }
+}

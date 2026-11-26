@@ -1,0 +1,231 @@
+import React, { useState } from 'react';
+import get from 'lodash/get';
+import { useTheme } from 'providers/Theme';
+import { useDispatch } from 'react-redux';
+import SingleLineEditor from 'components/SingleLineEditor';
+import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import StyledWrapper from './StyledWrapper';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+
+const AwsV4Auth = ({ item, collection, updateAuth, request, save, readOnly }) => {
+  const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
+
+  const awsv4Auth = get(request, 'auth.awsv4', {});
+
+  const handleRun = () => dispatch(sendRequest(item, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
+
+  const handleAccessKeyIdChange = (accessKeyId) => {
+    dispatch(
+      updateAuth({
+        mode: 'awsv4',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
+        }
+      })
+    );
+  };
+
+  const handleSecretAccessKeyChange = (secretAccessKey) => {
+    dispatch(
+      updateAuth({
+        mode: 'awsv4',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
+        }
+      })
+    );
+  };
+
+  const handleSessionTokenChange = (sessionToken) => {
+    dispatch(
+      updateAuth({
+        mode: 'awsv4',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
+        }
+      })
+    );
+  };
+
+  const handleServiceChange = (service) => {
+    dispatch(
+      updateAuth({
+        mode: 'awsv4',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: service || '',
+          region: awsv4Auth.region || '',
+          profileName: awsv4Auth.profileName || ''
+        }
+      })
+    );
+  };
+
+  const handleRegionChange = (region) => {
+    dispatch(
+      updateAuth({
+        mode: 'awsv4',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: region || '',
+          profileName: awsv4Auth.profileName || ''
+        }
+      })
+    );
+  };
+
+  const handleProfileNameChange = (profileName) => {
+    dispatch(
+      updateAuth({
+        mode: 'awsv4',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          accessKeyId: awsv4Auth.accessKeyId || '',
+          secretAccessKey: awsv4Auth.secretAccessKey || '',
+          sessionToken: awsv4Auth.sessionToken || '',
+          service: awsv4Auth.service || '',
+          region: awsv4Auth.region || '',
+          profileName: profileName || ''
+        }
+      })
+    );
+  };
+
+  return (
+    <StyledWrapper className="mt-2 w-full">
+      <label className="block mb-1">Access Key ID</label>
+      <div className="single-line-editor-wrapper mb-3">
+        <SingleLineEditor
+          value={awsv4Auth.accessKeyId || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleAccessKeyIdChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          readOnly={readOnly}
+          isCompact
+        />
+      </div>
+
+      <label className="block mb-1">Secret Access Key</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
+        <SingleLineEditor
+          value={awsv4Auth.secretAccessKey || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleSecretAccessKeyChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          isSecret={true}
+          readOnly={readOnly}
+          isCompact
+        />
+
+        <SensitiveFieldWarning fieldName="awsv4-secret-access-key" secretName="secretAccessKey" value={awsv4Auth?.secretAccessKey} collection={collection} item={item} fieldKey="secretAccessKey" onReplaceValue={handleSecretAccessKeyChange} />
+      </div>
+
+      <label className="block mb-1">Session Token</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center">
+        <SingleLineEditor
+          value={awsv4Auth.sessionToken || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleSessionTokenChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          isSecret={true}
+          readOnly={readOnly}
+          isCompact
+        />
+        <SensitiveFieldWarning fieldName="awsv4-session-token" secretName="sessionToken" value={awsv4Auth?.sessionToken} collection={collection} item={item} fieldKey="sessionToken" onReplaceValue={handleSessionTokenChange} />
+      </div>
+
+      <label className="block mb-1">Service</label>
+      <div className="single-line-editor-wrapper mb-3">
+        <SingleLineEditor
+          value={awsv4Auth.service || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleServiceChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          readOnly={readOnly}
+          isCompact
+        />
+      </div>
+
+      <label className="block mb-1">Region</label>
+      <div className="single-line-editor-wrapper mb-3">
+        <SingleLineEditor
+          value={awsv4Auth.region || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleRegionChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          readOnly={readOnly}
+          isCompact
+        />
+      </div>
+
+      <label className="block mb-1">Profile Name</label>
+      <div className="single-line-editor-wrapper">
+        <SingleLineEditor
+          value={awsv4Auth.profileName || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleProfileNameChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          readOnly={readOnly}
+          isCompact
+        />
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default AwsV4Auth;

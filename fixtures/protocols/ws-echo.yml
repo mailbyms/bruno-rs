@@ -1,0 +1,21 @@
+info:
+  name: WS Echo
+  type: websocket
+  seq: 1
+
+websocket:
+  url: ws://127.0.0.1:18082
+  headers:
+    - name: x-client
+      value: bruno-rs
+  message:
+    - title: ping
+      selected: true
+      message:
+        type: json
+        data: |-
+          {"hello":"world"}
+    - title: second
+      message:
+        type: text
+        data: plain text

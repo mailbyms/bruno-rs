@@ -1,0 +1,15 @@
+info:
+  name: gRPC Echo
+  type: grpc
+  seq: 2
+
+grpc:
+  url: 127.0.0.1:18083
+  method: /echo.Echo/Unary
+  methodType: unary
+  protoFilePath: echo.proto
+  metadata:
+    - name: x-trace
+      value: bruno-rs
+  message: |-
+    {"message":"ping","count":1}

@@ -1,0 +1,38 @@
+info:
+  name: Scripted Echo
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://127.0.0.1:18081/hello
+  headers:
+    - name: X-Base
+      value: base
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |
+        req.setUrl('http://127.0.0.1:18081/scripted');
+        req.setHeader('x-from-script', 'yes');
+        bru.setVar('scriptTag', 'abc');
+    - type: tests
+      code: |
+        test('status is 200', function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+        test('script header reached server', function () {
+          expect(res.getBody().headers['x-from-script']).to.equal('yes');
+        });
+        test('url was rewritten', function () {
+          expect(res.getBody().url).to.equal('/scripted');
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+
+settings:
+  encodeUrl: true
+  timeout: 0

@@ -1,0 +1,132 @@
+import { forOwn } from 'lodash';
+import curlToJson from './curl-to-json';
+import { prettifyJsonString } from 'utils/common/index';
+import { isJsonLikeContentType, isPlainTextContentType, isXmlLikeContentType } from './content-type';
+
+export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
+  const parseMultipartForm = (parsedBody) => {
+    if (!Array.isArray(parsedBody)) {
+      return [];
+    }
+
+    // multipartFormSchema declares a file entry's `value` as an array of paths;
+    // the parser gives a plain string even for `-F 'doc=@/tmp/a.pdf'`.
+    return parsedBody.map((field) => (field.type === 'file' ? { ...field, value: [field.value] } : field));
+  };
+
+  const parseFormData = (parsedBody) => {
+    const formData = [];
+    forOwn(parsedBody, (value, key) => {
+      // `querystring.parse` hands back an array when a key repeats (`-d 'tag=a&tag=b'`),
+      // but keyValueSchema declares a param's `value` a string, so each repeat
+      // becomes its own enabled param rather than one array-valued entry.
+      const values = Array.isArray(value) ? value : [value];
+      values.forEach((entry) => formData.push({ name: key, value: entry, enabled: true }));
+    });
+
+    return formData;
+  };
+
+  const formatGraphqlVariables = (variables) => {
+    if (variables === undefined || variables === null) {
+      return '';
+    }
+
+    if (typeof variables === 'string') {
+      return prettifyJsonString(variables);
+    }
+
+    return JSON.stringify(variables, null, 2);
+  };
+
+  const parseGraphQL = (text) => {
+    try {
+      const graphql = JSON.parse(text);
+
+      return {
+        query: graphql.query,
+        variables: formatGraphqlVariables(graphql.variables)
+      };
+    } catch (e) {
+      return {
+        query: '',
+        variables: ''
+      };
+    }
+  };
+
+  try {
+    if (!curlCommand || typeof curlCommand !== 'string' || curlCommand.length === 0) {
+      return null;
+    }
+
+    const request = curlToJson(curlCommand);
+    if (!request || !request.url) {
+      return null;
+    }
+
+    const parsedHeaders = request?.headers;
+    const headers
+      = parsedHeaders
+        && Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
+
+    const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
+    const parsedBody = request.data;
+
+    const body = {
+      mode: 'none',
+      json: null,
+      text: null,
+      xml: null,
+      sparql: null,
+      multipartForm: null,
+      formUrlEncoded: null,
+      graphql: null,
+      file: null
+    };
+
+    if (parsedBody && contentType && typeof contentType === 'string') {
+      const normalizedContentType = contentType.toLowerCase();
+
+      if (requestType === 'graphql-request' && (isJsonLikeContentType(contentType) || normalizedContentType.includes('application/graphql'))) {
+        body.mode = 'graphql';
+        body.graphql = parseGraphQL(parsedBody);
+      } else if (normalizedContentType.includes('application/x-ndjson') || normalizedContentType.includes('application/ndjson')) {
+        body.mode = 'text';
+        body.text = parsedBody;
+      } else if (requestType === 'http-request' && request.isDataBinary && Array.isArray(parsedBody)) {
+        body.mode = 'file';
+        body.file = parsedBody;
+      } else if (isJsonLikeContentType(contentType)) {
+        body.mode = 'json';
+        body.json = prettifyJsonString(parsedBody);
+      } else if (isXmlLikeContentType(contentType) || normalizedContentType.includes('xml')) {
+        body.mode = 'xml';
+        body.xml = parsedBody;
+      } else if (normalizedContentType.includes('application/x-www-form-urlencoded')) {
+        body.mode = 'formUrlEncoded';
+        body.formUrlEncoded = parseFormData(parsedBody);
+      } else if (normalizedContentType.includes('multipart/form-data')) {
+        body.mode = 'multipartForm';
+        body.multipartForm = parseMultipartForm(parsedBody);
+      } else if (isPlainTextContentType(contentType)) {
+        body.mode = 'text';
+        body.text = parsedBody;
+      }
+    } else if (parsedBody) {
+      body.mode = 'formUrlEncoded';
+      body.formUrlEncoded = parseFormData(parsedBody);
+    }
+
+    return {
+      url: request.url,
+      method: request.method,
+      body,
+      headers: headers,
+      auth: request.auth
+    };
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};

@@ -1,0 +1,34 @@
+[package]
+name = "bruno-rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "bruno_rs_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", default-features = false, features = ["wry", "compression", "common-controls-v6", "dynamic-acl"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+bruno-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yml.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+anyhow = "1"
+sha2 = "0.11"
+hex = "0.4"
+base64.workspace = true
+percent-encoding = "2.3"
+tracing = "0.1"
+
+[features]
+default = []
+custom-protocol = ["tauri/custom-protocol"]

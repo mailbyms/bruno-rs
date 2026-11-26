@@ -1,0 +1,129 @@
+import React, { useRef, forwardRef, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import get from 'lodash/get';
+import { IconCaretDown } from '@tabler/icons';
+import Dropdown from 'components/Dropdown';
+import { useTheme } from 'providers/Theme';
+import SingleLineEditor from 'components/SingleLineEditor';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import StyledWrapper from './StyledWrapper';
+import { humanizeRequestAPIKeyPlacement } from 'utils/collections';
+
+const ApiKeyAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
+  const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
+  const dropdownTippyRef = useRef();
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+
+  const apikeyAuth = get(request, 'auth.apikey', {});
+
+  const handleRun = () => dispatch(sendRequest(item, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
+
+  const Icon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} data-testid="auth-placement-label" className="flex items-center justify-end auth-type-label select-none">
+        {humanizeRequestAPIKeyPlacement(apikeyAuth?.placement)}
+        <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
+
+  const handleAuthChange = (property, value) => {
+    if (readOnly) {
+      return;
+    }
+    dispatch(
+      updateAuth({
+        mode: 'apikey',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          ...apikeyAuth,
+          [property]: value
+        }
+      })
+    );
+  };
+
+  useEffect(() => {
+    !readOnly
+    && !apikeyAuth?.placement
+    && dispatch(
+      updateAuth({
+        mode: 'apikey',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          placement: 'header'
+        }
+      })
+    );
+  }, [apikeyAuth, readOnly]);
+
+  return (
+    <StyledWrapper className="w-full">
+      <label className="block mb-1">Key</label>
+      <div className="single-line-editor-wrapper mb-3" data-testid="auth-apikey-key">
+        <SingleLineEditor
+          value={apikeyAuth.key || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleAuthChange('key', val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          readOnly={readOnly}
+          isCompact
+        />
+      </div>
+
+      <label className="block mb-1">Value</label>
+      <div className="single-line-editor-wrapper mb-3 flex items-center" data-testid="auth-apikey-value">
+        <SingleLineEditor
+          value={apikeyAuth.value || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleAuthChange('value', val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          isSecret={true}
+          isCompact
+          readOnly={readOnly}
+        />
+        <SensitiveFieldWarning fieldName="apikey-value" secretName="value" value={apikeyAuth.value} collection={collection} item={item} fieldKey="value" onReplaceValue={(val) => handleAuthChange('value', val)} />
+      </div>
+
+      <label className="block mb-1">Add To</label>
+      <div data-testid="auth-placement-selector" className={`inline-flex items-center ${readOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} auth-placement-selector w-fit`}>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" disabled={readOnly}>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              handleAuthChange('placement', 'header');
+            }}
+          >
+            Header
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              handleAuthChange('placement', 'queryparams');
+            }}
+          >
+            Query Param
+          </div>
+        </Dropdown>
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default ApiKeyAuth;

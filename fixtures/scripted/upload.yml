@@ -1,0 +1,21 @@
+info:
+  name: Multipart Upload
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://127.0.0.1:18081/upload
+  body:
+    type: multipart-form
+    data:
+      - name: title
+        type: text
+        value: coffee
+      - name: note
+        type: text
+        value: "{{scriptTag}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0

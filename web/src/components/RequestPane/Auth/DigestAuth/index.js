@@ -1,0 +1,87 @@
+import React from 'react';
+import SensitiveFieldWarning from 'components/SensitiveFieldWarning';
+import get from 'lodash/get';
+import { useTheme } from 'providers/Theme';
+import { useDispatch } from 'react-redux';
+import SingleLineEditor from 'components/SingleLineEditor';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import StyledWrapper from './StyledWrapper';
+
+const DigestAuth = ({ item, collection, updateAuth, request, save, readOnly }) => {
+  const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
+
+  const digestAuth = get(request, 'auth.digest', {});
+
+  const handleRun = () => dispatch(sendRequest(item, collection.uid));
+
+  const handleSave = () => {
+    save();
+  };
+
+  const handleUsernameChange = (username) => {
+    dispatch(
+      updateAuth({
+        mode: 'digest',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          username: username || '',
+          password: digestAuth.password || ''
+        }
+      })
+    );
+  };
+
+  const handlePasswordChange = (password) => {
+    dispatch(
+      updateAuth({
+        mode: 'digest',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          username: digestAuth.username || '',
+          password: password || ''
+        }
+      })
+    );
+  };
+
+  return (
+    <StyledWrapper className="mt-2 w-full">
+      <label className="block mb-1">Username</label>
+      <div className="single-line-editor-wrapper mb-3" data-testid="auth-digest-username">
+        <SingleLineEditor
+          value={digestAuth.username || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handleUsernameChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          readOnly={readOnly}
+          isCompact
+        />
+      </div>
+
+      <label className="block mb-1">Password</label>
+      <div className="single-line-editor-wrapper flex items-center" data-testid="auth-digest-password">
+        <SingleLineEditor
+          value={digestAuth.password || ''}
+          theme={storedTheme}
+          onSave={handleSave}
+          onChange={(val) => handlePasswordChange(val)}
+          onRun={handleRun}
+          collection={collection}
+          item={item}
+          isSecret={true}
+          readOnly={readOnly}
+          isCompact
+        />
+        <SensitiveFieldWarning fieldName="digest-password" secretName="password" value={digestAuth?.password} collection={collection} item={item} fieldKey="password" onReplaceValue={handlePasswordChange} />
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default DigestAuth;

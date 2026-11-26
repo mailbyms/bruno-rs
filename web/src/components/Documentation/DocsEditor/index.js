@@ -1,0 +1,205 @@
+import get from 'lodash/get';
+import { useTheme } from 'providers/Theme';
+import { useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
+import CodeEditor from 'components/CodeEditor';
+import RichTextEditor from 'ui/RichTextEditor';
+import ModeSwitch from 'components/ModeSwitch';
+import { useEditor } from '@tiptap/react';
+import { useTrackScroll } from 'hooks/useTrackScroll';
+import StyledWrapper from './StyledWrapper';
+
+// Distinct from any real `docs` value (including `null`, which a fresh
+// collection's docs field legitimately holds) so the "no edit emitted yet"
+// sentinel below can never be mistaken for actual doc content.
+const DOCS_NOT_YET_EMITTED = Symbol('docs-not-yet-emitted');
+
+const DocsEditor = ({
+  docs,
+  onEdit,
+  onSave,
+  isEditing,
+  isMarkdownMode,
+  onMarkdownModeChange,
+  item,
+  collection,
+  collectionPath,
+  emptyPreviewContent,
+  onRequestEdit,
+  initialScroll,
+  onScroll,
+  markdownInitialScroll,
+  onMarkdownScroll,
+  testId
+}) => {
+  const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
+
+  const lastEmittedDocsRef = useRef(DOCS_NOT_YET_EMITTED);
+  const isMarkdownModeRef = useRef(isMarkdownMode);
+  const isEditingRef = useRef(isEditing);
+  // Plain assignment during render — these refs exist only so the onUpdate
+  // closure below can read the latest mode/editing flags without being
+  // recreated on every change; there's no external system to synchronize
+  // with, so an effect would just add an unnecessary extra render pass.
+  const onSaveRef = useRef(onSave);
+  isMarkdownModeRef.current = isMarkdownMode;
+  isEditingRef.current = isEditing;
+  onSaveRef.current = onSave;
+
+  const editor = useEditor(
+    {
+      extensions: RichTextEditor.extensions({ collectionPath }),
+      content: docs || '',
+      editable: isEditing && !isMarkdownMode,
+      onUpdate: ({ editor: currentEditor, transaction }) => {
+        if (isMarkdownModeRef.current) return;
+        // A task checkbox stays clickable in preview (EditorTaskList's own
+        // node view), but that shouldn't dirty the request — only persist
+        // edits made while the docs tab is actually in edit mode.
+        if (!isEditingRef.current) return;
+        if (transaction && !transaction.docChanged) return;
+        const markdown = currentEditor.storage.markdown.getMarkdown();
+        lastEmittedDocsRef.current = markdown;
+        onEdit(markdown);
+      },
+      editorProps: {
+        handleKeyDown: (_view, event) => {
+          if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            onSaveRef.current();
+            return true;
+          }
+          return false;
+        }
+      },
+      onCreate: ({ editor: createdEditor }) => {
+        // by default Mousetrap ignores key events that originates from contenteditable elements (like TipTap's editor),
+        // adding mousetrap class to the editor's dom element will make Mousetrap listen to key events from TipTap's editor
+        createdEditor.view.dom.classList.add('mousetrap');
+
+        // Prevent keydown events which are bind to TipTap from bubbling up to the global Mousetrap handlers
+        createdEditor.view.dom.addEventListener('keydown', (event) => {
+          if (event.defaultPrevented) {
+            event.stopPropagation();
+          }
+        });
+      }
+    },
+    [collectionPath]
+  );
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const nextEditable = isEditing && !isMarkdownMode;
+    if (editor.isEditable !== nextEditable) {
+      editor.setEditable(nextEditable, false);
+    }
+  }, [editor, isEditing, isMarkdownMode]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    // `docs` echoing our own last edit (e.g. a table resize that leaves the
+    // serialized markdown unchanged) shouldn't reset editor content — but
+    // unlike a one-shot skip flag, this comparison never gets stuck, so a
+    // later *external* docs change (AI Assist, file-watcher reload) still syncs.
+    if (docs === lastEmittedDocsRef.current) return;
+
+    if (isEditing && isMarkdownMode) return;
+
+    const content = docs || (isEditing ? '' : emptyPreviewContent || '');
+
+    if (!editor.isDestroyed) {
+      editor.commands.setContent(content, false);
+    }
+  }, [docs, editor, isMarkdownMode, isEditing, emptyPreviewContent]);
+
+  const handleDoubleClick = () => {
+    if (!isEditing && onRequestEdit) {
+      onRequestEdit();
+    }
+  };
+
+  // The rich-text view (preview AND WYSIWYG edit mode) stays mounted the
+  // whole time — only markdown mode swaps it out for CodeEditor below. So
+  // scroll tracking here should only pause when markdown mode's CodeEditor
+  // (which has its own initialScroll/onScroll) is the one actually visible;
+  // gating on `isEditing` alone left WYSIWYG edit mode with no tracking at all.
+  const richTextWrapperRef = useRef(null);
+  useTrackScroll({
+    ref: richTextWrapperRef,
+    selector: '.rich-text-editor-content',
+    onChange: onScroll || (() => {}),
+    enabled: !(isEditing && isMarkdownMode),
+    initialValue: initialScroll
+  });
+
+  const scrollToRestoreRef = useRef(initialScroll);
+  useEffect(() => {
+    const scrollContainer = richTextWrapperRef.current?.querySelector('.rich-text-editor-content');
+    const content = scrollContainer?.querySelector('.ProseMirror');
+    const target = scrollToRestoreRef.current;
+    if (!scrollContainer || !content || !target) return;
+
+    const userScrollEvents = ['wheel', 'pointerdown', 'keydown'];
+    const resizeObserver = new ResizeObserver(() => {
+      scrollContainer.scrollTop = target;
+      if (scrollContainer.scrollTop >= target - 1) resizeObserver.disconnect();
+    });
+    const stopRestoring = () => resizeObserver.disconnect();
+
+    userScrollEvents.forEach((type) => scrollContainer.addEventListener(type, stopRestoring));
+    resizeObserver.observe(content);
+    return () => {
+      resizeObserver.disconnect();
+      userScrollEvents.forEach((type) => scrollContainer.removeEventListener(type, stopRestoring));
+    };
+  }, []);
+
+  return (
+    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full min-w-0 max-w-full relative" data-testid={testId}>
+      {isEditing && (
+        <div className="docs-tab-strip">
+          {!isMarkdownMode && (
+            <div className="docs-toolbar-slot">
+              <RichTextEditor.MenuBar editor={editor} />
+            </div>
+          )}
+          <ModeSwitch
+            isMarkdownMode={isMarkdownMode}
+            onToggle={() => onMarkdownModeChange(!isMarkdownMode)}
+            className="docs-mode-switch"
+          />
+        </div>
+      )}
+
+      {isEditing && isMarkdownMode && (
+        <div className="relative flex-1 min-h-0">
+          <CodeEditor
+            collection={collection}
+            item={item}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+            value={docs || ''}
+            onEdit={onEdit}
+            onSave={onSave}
+            mode="gfm"
+            initialScroll={markdownInitialScroll}
+            onScroll={onMarkdownScroll}
+          />
+        </div>
+      )}
+      <section
+        ref={richTextWrapperRef}
+        className={`flex flex-col flex-1 min-h-0 min-w-0 max-w-full w-full ${isEditing && isMarkdownMode ? 'hidden' : ''}`}
+        onDoubleClick={handleDoubleClick}
+      >
+        <RichTextEditor editor={editor} />
+      </section>
+    </StyledWrapper>
+  );
+};
+
+export default DocsEditor;

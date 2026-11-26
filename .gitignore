@@ -1,0 +1,27 @@
+# ---- Rust / Tauri ----
+/target
+/src-tauri/target
+**/*.rs.bk
+
+# ---- Node ----
+# 只忽略顶层的依赖树；web/vendor 里 vendored 包的 node_modules 要保留
+# （rsbuild 把它们当本地包消费，删掉会构建失败）
+/node_modules/
+/web/node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ---- 前端构建产物 ----
+# npm run build:web 生成；custom-protocol 构建会重建，不进版本库
+/web/dist/
+
+# ---- Tauri 生成的 schema ----
+/src-tauri/gen/schemas
+
+# ---- 本地杂项 ----
+*.local
+*.log
+.DS_Store
+Thumbs.db
+/out
+/tmp
