@@ -13,7 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", default-features = false, features = ["wry", "compression", "common-controls-v6", "dynamic-acl"] }
+tauri = { version = "2", default-features = false, features = ["wry", "compression", "common-controls-v6", "dynamic-acl", "devtools"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 bruno-core.workspace = true

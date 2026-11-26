@@ -7,8 +7,8 @@
     "dev:web": "npm --prefix web run dev",
     "build:web": "npm --prefix web run build",
     "dev:app": "tauri dev",
-    "build:app": "tauri build --no-bundle",
-    "build:installer": "tauri build",
+    "build:app": "tauri build --no-bundle --features custom-protocol",
+    "build:installer": "tauri build --features custom-protocol",
     "tauri": "tauri"
   },
   "devDependencies": {
